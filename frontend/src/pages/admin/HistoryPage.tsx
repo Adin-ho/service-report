@@ -33,8 +33,8 @@ export default function HistoryPage() {
         <p className="text-sm text-slate-500">Completed dispatches with their final status.</p>
       </div>
       <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <table className="w-full table-fixed text-left text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full min-w-[640px] table-fixed text-left text-sm">
             <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 <th className="w-[26%] px-4 py-3 text-left">Dispatch No</th>

@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   PlusCircle,
+  X,
   SquareStack,
   Users,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const navItems = [
 export default function DashboardShell() {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const navigation = useMemo(
     () => navItems.filter((item) => !item.roles || item.roles.includes(user?.role ?? "ADMIN")),
@@ -32,11 +34,12 @@ export default function DashboardShell() {
   );
 
   return (
-    <div className="dashboard-shell flex h-screen bg-slate-50 text-slate-900">
+    <div className="dashboard-shell flex min-h-screen flex-col bg-slate-50 text-slate-900 lg:h-screen lg:flex-row">
       <aside
         className={clsx(
-          "flex flex-col border-r border-slate-200 bg-white/90 backdrop-blur-md transition-all duration-300",
-          collapsed ? "w-20" : "w-72"
+          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white/90 backdrop-blur-md transition-all duration-300 lg:static lg:z-auto lg:h-full",
+          collapsed ? "lg:w-20" : "lg:w-72",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex items-center gap-3 px-6 py-6">
@@ -49,6 +52,13 @@ export default function DashboardShell() {
               <p className="text-xs text-slate-500">Internal Dashboard</p>
             </div>
           )}
+          <button
+            className="ml-auto rounded-full border border-slate-200 p-2 text-slate-400 transition hover:text-slate-600 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X size={16} />
+          </button>
         </div>
         <nav className="flex-1 space-y-2 px-3">
           {navigation.map(({ to, label, icon: Icon }) => (
@@ -64,6 +74,7 @@ export default function DashboardShell() {
                 )
               }
               end={to === "/"}
+              onClick={() => setMobileSidebarOpen(false)}
             >
               <Icon size={18} />
               {!collapsed && label}
@@ -80,21 +91,37 @@ export default function DashboardShell() {
           </button>
         </div>
       </aside>
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center gap-4 border-b border-slate-200 bg-white/80 px-8 py-4 backdrop-blur">
-          <button
-            className="rounded-full border border-slate-200 p-2 hover:border-slate-400"
-            onClick={() => setCollapsed((prev) => !prev)}
-          >
-            <Menu size={18} />
-          </button>
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white/80 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-400 lg:hidden"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <Menu size={18} />
+            </button>
+            <button
+              className="hidden rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-400 lg:inline-flex"
+              onClick={() => setCollapsed((prev) => !prev)}
+              aria-label="Toggle sidebar width"
+            >
+              <Menu size={18} />
+            </button>
+          </div>
           <div className="flex flex-col">
             <span className="text-lg font-semibold">Hello, {user?.name ?? "User"}</span>
             <span className="text-sm text-slate-500">{user?.role ?? "Admin"}</span>
           </div>
-          <div className="ml-auto flex items-center gap-4">
-            <div className="relative w-80 max-w-sm">
+          <div className="ml-auto flex w-full flex-wrap items-center gap-3 sm:w-auto sm:flex-nowrap">
+            <div className="relative w-full min-w-[180px] flex-1 sm:w-64 lg:w-80">
               <input
                 placeholder="Search files..."
                 className="w-full rounded-full border border-transparent bg-slate-100 py-2.5 pl-11 pr-4 text-sm text-slate-600 outline-none ring-offset-2 focus:border-slate-200 focus:ring-2 focus:ring-slate-200"
@@ -118,7 +145,7 @@ export default function DashboardShell() {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>

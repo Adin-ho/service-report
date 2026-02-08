@@ -113,6 +113,14 @@ export default function ServiceReportPrintModal({
     return resolveMediaUrl(trimmed) || trimmed;
   };
 
+  const resetPrintScale = (root: HTMLElement | null) => {
+    if (!root) return;
+    const scaledNodes = Array.from(root.querySelectorAll<HTMLElement>("[data-print-scale='true']"));
+    scaledNodes.forEach((node) => {
+      node.style.transform = "none";
+      node.style.width = "100%";
+    });
+  };
 
   const setCleanPrintMode = (root: HTMLElement | null, enable: boolean) => {
     if (!root) return;
@@ -299,6 +307,20 @@ export default function ServiceReportPrintModal({
     const style = existing ?? document.createElement("style");
     style.id = "report-print-style";
     style.innerHTML = `
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+
+      @media print {
+        *, *::before, *::after {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+      }
+
       .print-pages--clean .print-preview-page {
         background-color: #ffffff !important;
       }
@@ -308,9 +330,8 @@ export default function ServiceReportPrintModal({
         box-shadow: none !important;
       }
 
-      @page { size: A4 portrait; margin: 0; }
+      @page { size: A4 portrait; margin: 0cm; }
       @media print {
-        body { background: #ffffff !important; }
         #report-print-root {
           display: block !important;
           position: static !important;
@@ -387,6 +408,7 @@ export default function ServiceReportPrintModal({
       }
     }
 
+    resetPrintScale(clone);
     portal.appendChild(clone);
     document.body.appendChild(portal);
     return portal;
@@ -426,6 +448,8 @@ export default function ServiceReportPrintModal({
         }
       })
     );
+
+    resetPrintScale(root);
   };
 
   const waitForImages = async (root: HTMLElement) => {
