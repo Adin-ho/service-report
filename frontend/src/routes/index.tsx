@@ -7,6 +7,11 @@ import HistoryPage from "../pages/admin/HistoryPage.tsx";
 import UserManagement from "../pages/admin/UserManagement.tsx";
 import TechnicianReports from "../pages/teknisi/TechnicianReports.tsx";
 import TechnicianUpdate from "../pages/teknisi/TechnicianUpdate.tsx";
+import FinanceDashboard from "../pages/finance/FinanceDashboard";
+import FinanceActivity from "../pages/finance/FinanceActivity";
+import FinanceHistory from "../pages/finance/FinanceHistory";
+import FinanceVoucherForm from "../pages/finance/FinanceVoucherForm";
+import FinanceShell from "../components/layout/FinanceShell";
 import { ProtectedRoute } from "./ProtectedRoute.tsx";
 import { useAuth } from "../hooks/useAuth.tsx";
 
@@ -78,6 +83,32 @@ export const router = createBrowserRouter([
             <TechnicianUpdate />
           </ProtectedRoute>
         ),
+      },
+    ],
+  },
+  {
+    path: "/finance",
+    element: (
+      <ProtectedRoute roles={["MASTER_ADMIN", "ADMIN"]}>
+        <FinanceShell />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <FinanceDashboard />,
+      },
+      {
+        path: "activity",
+        element: <FinanceActivity />,
+      },
+      {
+        path: "history",
+        element: <FinanceHistory />,
+      },
+      {
+        path: "voucher",
+        element: <FinanceVoucherForm />,
       },
     ],
   },
