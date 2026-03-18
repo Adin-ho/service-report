@@ -10,7 +10,6 @@ import TechnicianUpdate from "../pages/teknisi/TechnicianUpdate.tsx";
 import FinanceDashboard from "../pages/finance/FinanceDashboard";
 import FinanceActivity from "../pages/finance/FinanceActivity";
 import FinanceHistory from "../pages/finance/FinanceHistory";
-import FinanceVoucherForm from "../pages/finance/FinanceVoucherForm";
 import FinanceShell from "../components/layout/FinanceShell";
 import { ProtectedRoute } from "./ProtectedRoute.tsx";
 import { useAuth } from "../hooks/useAuth.tsx";
@@ -105,10 +104,6 @@ export const router = createBrowserRouter([
       {
         path: "history",
         element: <FinanceHistory />,
-      },
-      {
-        path: "voucher",
-        element: <FinanceVoucherForm />,
       },
     ],
   },

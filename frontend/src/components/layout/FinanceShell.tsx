@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Bell, History, LayoutGrid, Loader, LogOut, Menu, X, ListChecks, Wallet } from "lucide-react";
+import { Bell, History, LayoutGrid, Loader, LogOut, Menu, X, ListChecks } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -8,7 +8,6 @@ const navItems = [
   { to: "/finance", label: "Finance Dashboard", icon: LayoutGrid },
   { to: "/finance/activity", label: "Finance Activity", icon: ListChecks },
   { to: "/finance/history", label: "History Activity", icon: History },
-  { to: "/finance/voucher", label: "Payment Voucher", icon: Wallet },
 ];
 
 export default function FinanceShell() {

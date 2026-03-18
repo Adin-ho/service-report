@@ -19,11 +19,7 @@ export default function FinanceVoucherForm() {
     voucherNo: "",
   });
 
-  const [items, setItems] = useState<LineItem[]>([
-    { accNo: "", accountName: "", description: "", amount: "" },
-    { accNo: "", accountName: "", description: "", amount: "" },
-    { accNo: "", accountName: "", description: "", amount: "" },
-  ]);
+  const [items, setItems] = useState<LineItem[]>([{ accNo: "", accountName: "", description: "", amount: "" }]);
 
   const [note, setNote] = useState("");
   const [bank, setBank] = useState("");
@@ -47,8 +43,8 @@ export default function FinanceVoucherForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6 rounded-3xl border border-slate-100 bg-slate-50/80 p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Finance</p>
           <h1 className="text-3xl font-semibold text-slate-900">Bank Payment Voucher</h1>
@@ -64,7 +60,7 @@ export default function FinanceVoucherForm() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="rounded-3xl border border-slate-100 bg-white/80 p-5 shadow-sm xl:col-span-2">
+        <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm xl:col-span-2">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm text-slate-600">
               <span>Company Name</span>
@@ -83,6 +79,9 @@ export default function FinanceVoucherForm() {
                 onChange={(e) => setHeader((p) => ({ ...p, address: e.target.value }))}
               />
             </label>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
             <label className="space-y-1 text-sm text-slate-600">
               <span>Pay To</span>
               <input
@@ -91,56 +90,56 @@ export default function FinanceVoucherForm() {
                 onChange={(e) => setHeader((p) => ({ ...p, payTo: e.target.value }))}
               />
             </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-sm text-slate-600">
-                <span>Total Amount</span>
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                  <Wallet size={16} className="text-slate-400" />
-                  <input
-                    className="w-full text-sm text-slate-800 focus:outline-none"
-                    value={header.totalAmount}
-                    onChange={(e) => setHeader((p) => ({ ...p, totalAmount: e.target.value }))}
-                  />
-                </div>
-              </label>
-              <label className="space-y-1 text-sm text-slate-600">
-                <span>In Words</span>
+            <label className="space-y-1 text-sm text-slate-600">
+              <span>Total Amount</span>
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                <Wallet size={16} className="text-slate-400" />
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  value={header.inWords}
-                  onChange={(e) => setHeader((p) => ({ ...p, inWords: e.target.value }))}
+                  className="w-full text-sm text-slate-800 focus:outline-none"
+                  value={header.totalAmount}
+                  onChange={(e) => setHeader((p) => ({ ...p, totalAmount: e.target.value }))}
                 />
-              </label>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-sm text-slate-600">
-                <span>Date</span>
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                  <Calendar size={16} className="text-slate-400" />
-                  <input
-                    type="date"
-                    className="w-full text-sm text-slate-800 focus:outline-none"
-                    value={header.date}
-                    onChange={(e) => setHeader((p) => ({ ...p, date: e.target.value }))}
-                  />
-                </div>
-              </label>
-              <label className="space-y-1 text-sm text-slate-600">
-                <span>Voucher No</span>
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                  <Hash size={16} className="text-slate-400" />
-                  <input
-                    className="w-full text-sm text-slate-800 focus:outline-none"
-                    value={header.voucherNo}
-                    onChange={(e) => setHeader((p) => ({ ...p, voucherNo: e.target.value }))}
-                  />
-                </div>
-              </label>
-            </div>
+              </div>
+            </label>
+            <label className="space-y-1 text-sm text-slate-600">
+              <span>Date</span>
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                <Calendar size={16} className="text-slate-400" />
+                <input
+                  type="date"
+                  className="w-full text-sm text-slate-800 focus:outline-none"
+                  value={header.date}
+                  onChange={(e) => setHeader((p) => ({ ...p, date: e.target.value }))}
+                />
+              </div>
+            </label>
+            <label className="space-y-1 text-sm text-slate-600">
+              <span>Voucher No</span>
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                <Hash size={16} className="text-slate-400" />
+                <input
+                  className="w-full text-sm text-slate-800 focus:outline-none"
+                  value={header.voucherNo}
+                  onChange={(e) => setHeader((p) => ({ ...p, voucherNo: e.target.value }))}
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="grid gap-4">
+            <label className="space-y-1 text-sm text-slate-600">
+              <span>In Words</span>
+              <textarea
+                rows={2}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                value={header.inWords}
+                onChange={(e) => setHeader((p) => ({ ...p, inWords: e.target.value }))}
+              />
+            </label>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-100 bg-white/80 p-5 shadow-sm">
+        <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <FileText size={16} />
             Voucher Summary
@@ -165,7 +164,7 @@ export default function FinanceVoucherForm() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-100 bg-white/80 p-5 shadow-sm">
+      <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Detail</p>
@@ -179,14 +178,14 @@ export default function FinanceVoucherForm() {
             + Add Row
           </button>
         </div>
-        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-100 bg-white">
+        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <table className="w-full min-w-[900px] border-collapse text-sm text-slate-800">
-            <thead className="bg-slate-50 text-left font-semibold text-slate-900">
+            <thead className="bg-slate-100 text-left font-semibold text-slate-900">
               <tr>
-                <th className="border border-slate-200 px-3 py-2">Acc No</th>
-                <th className="border border-slate-200 px-3 py-2">Account Name</th>
-                <th className="border border-slate-200 px-3 py-2">Description</th>
-                <th className="border border-slate-200 px-3 py-2 text-right">Amount</th>
+                <th className="border border-slate-200 px-3 py-2 text-left">Acc No</th>
+                <th className="border border-slate-200 px-3 py-2 text-left">Account Name</th>
+                <th className="border border-slate-200 px-3 py-2 text-left">Description</th>
+                <th className="border border-slate-200 px-3 py-2 text-left">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -194,21 +193,21 @@ export default function FinanceVoucherForm() {
                 <tr key={idx}>
                   <td className="border border-slate-200 px-3 py-2">
                     <input
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
                       value={item.accNo}
                       onChange={(e) => handleItemChange(idx, "accNo", e.target.value)}
                     />
                   </td>
                   <td className="border border-slate-200 px-3 py-2">
                     <input
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
                       value={item.accountName}
                       onChange={(e) => handleItemChange(idx, "accountName", e.target.value)}
                     />
                   </td>
                   <td className="border border-slate-200 px-3 py-2">
                     <input
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
                       value={item.description}
                       onChange={(e) => handleItemChange(idx, "description", e.target.value)}
                     />
@@ -216,7 +215,7 @@ export default function FinanceVoucherForm() {
                   <td className="border border-slate-200 px-3 py-2">
                     <input
                       type="number"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-600/30"
                       value={item.amount}
                       onChange={(e) => handleItemChange(idx, "amount", e.target.value)}
                     />
@@ -235,7 +234,7 @@ export default function FinanceVoucherForm() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <label className="space-y-2 rounded-3xl border border-slate-100 bg-white/80 p-5 text-sm text-slate-600 shadow-sm">
+        <label className="space-y-2 rounded-3xl border border-slate-100 bg-white p-5 text-sm text-slate-600 shadow-sm">
           <span className="text-slate-800">Note</span>
           <textarea
             rows={3}
@@ -244,7 +243,7 @@ export default function FinanceVoucherForm() {
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
-        <label className="space-y-2 rounded-3xl border border-slate-100 bg-white/80 p-5 text-sm text-slate-600 shadow-sm">
+        <label className="space-y-2 rounded-3xl border border-slate-100 bg-white p-5 text-sm text-slate-600 shadow-sm">
           <span className="text-slate-800">Bank</span>
           <input
             className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
