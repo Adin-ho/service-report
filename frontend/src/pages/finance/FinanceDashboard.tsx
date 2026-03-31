@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -9,6 +9,7 @@ import {
   History,
   ListChecks,
 } from "lucide-react";
+import { api } from "../../lib/api";
 
 const monthlyActivity = [
   { month: "Jan", value: 18 },
@@ -19,13 +20,27 @@ const monthlyActivity = [
   { month: "Jun", value: 24 },
 ];
 
-const historyData = [
-  { id: "TRX-1201", type: "Purchase", status: "Approved", amount: "Rp 12.500.000", date: "12 Jan 2026" },
-  { id: "TRX-1188", type: "Maintenance", status: "Pending", amount: "Rp 4.200.000", date: "10 Jan 2026" },
-  { id: "TRX-1182", type: "Subscription", status: "Approved", amount: "Rp 2.150.000", date: "08 Jan 2026" },
-  { id: "TRX-1175", type: "Reimbursement", status: "Pending", amount: "Rp 1.350.000", date: "05 Jan 2026" },
-  { id: "TRX-1167", type: "Purchase", status: "Rejected", amount: "Rp 7.800.000", date: "02 Jan 2026" },
-];
+type Activity = {
+  id: number;
+  voucher_no: string;
+  status: string;
+  pay_to: string;
+  total_amount: number;
+  created_at?: string;
+};
+
+const statusColor: Record<string, string> = {
+  DRAFT: "bg-slate-100 text-slate-700",
+  SUBMITTED: "bg-amber-100 text-amber-700",
+  APPROVED: "bg-emerald-100 text-emerald-700",
+  REJECTED: "bg-rose-100 text-rose-700",
+  SIGNED: "bg-indigo-100 text-indigo-700",
+};
+
+function formatDate(val?: string) {
+  if (!val) return "-";
+  return new Date(val).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 function StatCard({
   title,
@@ -67,6 +82,26 @@ function StatCard({
 }
 
 export default function FinanceDashboard() {
+  const [history, setHistory] = useState<Activity[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const res = await api.get("/finance/activities");
+        setHistory(res.data?.data ?? []);
+      } catch (err: any) {
+        setHistoryError(err?.response?.data?.error || "Gagal memuat data");
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
+  }, []);
+
   const total = monthlyActivity.reduce((acc, item) => acc + item.value, 0);
   const maxValue = Math.max(...monthlyActivity.map((m) => m.value));
 
@@ -192,39 +227,46 @@ export default function FinanceDashboard() {
             </div>
             <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
               <History size={14} />
-              Terakhir update 12 Jan 2026
+              Terakhir update {formatDate(new Date().toISOString())}
             </div>
           </div>
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-slate-700">
-              <thead>
-                <tr className="text-xs uppercase text-slate-400">
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Jenis</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Jumlah</th>
-                  <th className="px-4 py-3">Tanggal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {historyData.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-slate-900">{row.id}</td>
-                    <td className="px-4 py-3">{row.type}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${row.status === "Approved" ? "bg-emerald-50 text-emerald-600" : row.status === "Pending" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold">{row.amount}</td>
-                    <td className="px-4 py-3 text-slate-500">{row.date}</td>
+          {historyError && <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{historyError}</div>}
+          {historyLoading ? (
+            <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-6 text-sm text-slate-500">Memuat data...</div>
+          ) : history.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">Belum ada aktivitas.</div>
+          ) : (
+            <div className="mt-6 overflow-x-auto">
+              <table className="min-w-full text-left text-sm text-slate-700">
+                <thead>
+                  <tr className="text-xs uppercase text-slate-400">
+                    <th className="px-4 py-3">ID</th>
+                    <th className="px-4 py-3">Voucher No</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Pay To</th>
+                    <th className="px-4 py-3 text-right">Jumlah</th>
+                    <th className="px-4 py-3">Tanggal</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {history.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-semibold text-slate-900">#{row.id}</td>
+                      <td className="px-4 py-3">{row.voucher_no || "-"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColor[row.status] || "bg-slate-100 text-slate-700"}`}>
+                          {row.status || "-"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{row.pay_to || "-"}</td>
+                      <td className="px-4 py-3 text-right font-semibold">Rp {Number(row.total_amount || 0).toLocaleString("id-ID")}</td>
+                      <td className="px-4 py-3 text-slate-500">{formatDate(row.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </section>
     </div>
