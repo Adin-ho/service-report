@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 
-type Role = "MASTER_ADMIN" | "ADMIN" | "TEKNISI";
+type Role = "MASTER_ADMIN" | "ADMIN" | "TEKNISI" | "FINANCE_MAKER" | "FINANCE_CHECKER" | "FINANCE_SIGNER";
 
 type User = {
   id: number;

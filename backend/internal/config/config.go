@@ -19,6 +19,12 @@ type Config struct {
 	FrontendURL        string
 	SeedMasterEmail    string
 	SeedMasterPassword string
+	SeedFinanceMakerEmail    string
+	SeedFinanceMakerPassword string
+	SeedFinanceCheckerEmail    string
+	SeedFinanceCheckerPassword string
+	SeedFinanceSignerEmail    string
+	SeedFinanceSignerPassword string
 	SMTPHost           string
 	SMTPPort           int
 	SMTPUsername       string
@@ -39,6 +45,12 @@ func Load() *Config {
 		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:5173"),
 		SeedMasterEmail:    getEnv("SEED_MASTER_EMAIL", "master@corp.com"),
 		SeedMasterPassword: getEnv("SEED_MASTER_PASSWORD", "ChangeMe123!"),
+		SeedFinanceMakerEmail:    getEnv("SEED_FINANCE_MAKER_EMAIL", "maker@corp.com"),
+		SeedFinanceMakerPassword: getEnv("SEED_FINANCE_MAKER_PASSWORD", "ChangeMe123!"),
+		SeedFinanceCheckerEmail:    getEnv("SEED_FINANCE_CHECKER_EMAIL", "checker@corp.com"),
+		SeedFinanceCheckerPassword: getEnv("SEED_FINANCE_CHECKER_PASSWORD", "ChangeMe123!"),
+		SeedFinanceSignerEmail:    getEnv("SEED_FINANCE_SIGNER_EMAIL", "signer@corp.com"),
+		SeedFinanceSignerPassword: getEnv("SEED_FINANCE_SIGNER_PASSWORD", "ChangeMe123!"),
 		SMTPHost:           getEnv("SMTP_HOST", ""),
 		SMTPPort:           getInt("SMTP_PORT", 587),
 		SMTPUsername:       getEnv("SMTP_USERNAME", ""),

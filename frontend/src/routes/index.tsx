@@ -10,6 +10,7 @@ import TechnicianUpdate from "../pages/teknisi/TechnicianUpdate.tsx";
 import FinanceDashboard from "../pages/finance/FinanceDashboard";
 import FinanceActivity from "../pages/finance/FinanceActivity";
 import FinanceHistory from "../pages/finance/FinanceHistory";
+import FinanceHistoryDetail from "../pages/finance/FinanceHistoryDetail";
 import FinanceShell from "../components/layout/FinanceShell";
 import { ProtectedRoute } from "./ProtectedRoute.tsx";
 import { useAuth } from "../hooks/useAuth.tsx";
@@ -18,6 +19,13 @@ function DefaultLanding() {
   const { user } = useAuth();
   if (user?.role === "TEKNISI") {
     return <Navigate to="/teknisi/reports" replace />;
+  }
+  if (
+    user?.role === "FINANCE_MAKER" ||
+    user?.role === "FINANCE_CHECKER" ||
+    user?.role === "FINANCE_SIGNER"
+  ) {
+    return <Navigate to="/finance" replace />;
   }
   return <AdminDashboard />;
 }
@@ -38,7 +46,7 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: (
-          <ProtectedRoute roles={["MASTER_ADMIN", "ADMIN", "TEKNISI"]}>
+          <ProtectedRoute roles={["MASTER_ADMIN", "ADMIN", "TEKNISI", "FINANCE_MAKER", "FINANCE_CHECKER", "FINANCE_SIGNER"]}>
             <DefaultLanding />
           </ProtectedRoute>
         ),
@@ -88,7 +96,7 @@ export const router = createBrowserRouter([
   {
     path: "/finance",
     element: (
-      <ProtectedRoute roles={["MASTER_ADMIN", "ADMIN"]}>
+      <ProtectedRoute roles={["MASTER_ADMIN", "ADMIN", "FINANCE_MAKER", "FINANCE_CHECKER", "FINANCE_SIGNER"]}>
         <FinanceShell />
       </ProtectedRoute>
     ),
@@ -104,6 +112,10 @@ export const router = createBrowserRouter([
       {
         path: "history",
         element: <FinanceHistory />,
+      },
+      {
+        path: "history/:id",
+        element: <FinanceHistoryDetail />,
       },
     ],
   },

@@ -23,7 +23,10 @@ interface ApiUser {
   Email: string;
   CreatedAt?: string;
   LastLoginAt?: string | null;
+  Role?: { Name: string };
 }
+
+type FinanceRole = "FINANCE_MAKER" | "FINANCE_CHECKER" | "FINANCE_SIGNER";
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -48,14 +51,26 @@ export default function UserManagement() {
     defaultValues: { full_name: "", email: "", password: "" },
   });
 
+  const {
+    register: registerFinance,
+    handleSubmit: handleSubmitFinance,
+    reset: resetFinance,
+    formState: { isSubmitting: creatingFinance },
+  } = useForm<CreateUserForm & { role: FinanceRole }>({
+    defaultValues: { full_name: "", email: "", password: "", role: "FINANCE_MAKER" },
+  });
+
   const { register: registerChange, handleSubmit: handleSubmitChange, reset: resetChange } = useForm<ChangePasswordForm>();
 
   const [admins, setAdmins] = useState<ApiUser[]>([]);
   const [teknisi, setTeknisi] = useState<ApiUser[]>([]);
+  const [financeUsers, setFinanceUsers] = useState<ApiUser[]>([]);
   const [adminStatus, setAdminStatus] = useState<string | null>(null);
   const [teknisiStatus, setTeknisiStatus] = useState<string | null>(null);
+  const [financeStatus, setFinanceStatus] = useState<string | null>(null);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
   const [loadingTeknisi, setLoadingTeknisi] = useState(false);
+  const [loadingFinance, setLoadingFinance] = useState(false);
   const [changeStatus, setChangeStatus] = useState<string | null>(null);
 
   const fetchAdmins = useCallback(async () => {
@@ -78,27 +93,26 @@ export default function UserManagement() {
     }
   }, []);
 
+  const fetchFinance = useCallback(async () => {
+    setLoadingFinance(true);
+    try {
+      const res = await api.get("/finance/users");
+      setFinanceUsers(res.data?.data ?? []);
+    } finally {
+      setLoadingFinance(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isMaster) {
       fetchAdmins();
+      fetchFinance();
     }
     if (isAdmin || isMaster) {
       fetchTeknisi();
     }
-  }, [isMaster, isAdmin, fetchAdmins, fetchTeknisi]);
+  }, [isMaster, isAdmin, fetchAdmins, fetchTeknisi, fetchFinance]);
 
-  useEffect(() => {
-    if (!isMaster && !isAdmin) return;
-    const interval = setInterval(() => {
-      if (isMaster) {
-        fetchAdmins();
-      }
-      if (isAdmin || isMaster) {
-        fetchTeknisi();
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [isMaster, isAdmin, fetchAdmins, fetchTeknisi]);
 
   const submitAdmin = handleSubmitAdmin(async (values) => {
     setAdminStatus(null);
@@ -121,6 +135,22 @@ export default function UserManagement() {
       fetchTeknisi();
     } catch (err: any) {
       setTeknisiStatus(err?.response?.data?.error ?? "Failed to create technician.");
+    }
+  });
+
+  const submitFinance = handleSubmitFinance(async (values) => {
+    setFinanceStatus(null);
+    try {
+      const role = values.role;
+      const payload = { full_name: values.full_name, email: values.email, password: values.password };
+      if (role === "FINANCE_MAKER") await api.post("/finance/users/maker", payload);
+      else if (role === "FINANCE_CHECKER") await api.post("/finance/users/checker", payload);
+      else await api.post("/finance/users/signer", payload);
+      setFinanceStatus("Finance account created successfully.");
+      resetFinance();
+      fetchFinance();
+    } catch (err: any) {
+      setFinanceStatus(err?.response?.data?.error ?? "Failed to create finance user.");
     }
   });
 
@@ -222,6 +252,80 @@ export default function UserManagement() {
                       </tr>
                     );
                     })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isMaster && (
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Create Finance Account</h2>
+              <p className="text-sm text-slate-500">Maker / Checker / Signer untuk alur finance.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white">
+              <UserPlus size={14} />
+              Master Admin only
+            </span>
+          </div>
+          <form onSubmit={submitFinance} className="mt-6 grid gap-4 md:grid-cols-4">
+            <Field label="Full Name">
+              <input {...registerFinance("full_name", { required: true })} className="input" placeholder="Finance User" />
+            </Field>
+            <Field label="Email">
+              <input type="email" {...registerFinance("email", { required: true })} className="input" placeholder="finance@corp.com" />
+            </Field>
+            <Field label="Temporary Password">
+              <PasswordField register={registerFinance("password", { required: true, minLength: 8 })} placeholder="Minimum 8 characters" />
+            </Field>
+            <Field label="Role">
+              <select {...registerFinance("role", { required: true })} className="input">
+                <option value="FINANCE_MAKER">Finance Maker</option>
+                <option value="FINANCE_CHECKER">Finance Checker</option>
+                <option value="FINANCE_SIGNER">Finance Signer</option>
+              </select>
+            </Field>
+            <div className="md:col-span-4 flex items-center gap-4">
+              <button type="submit" disabled={creatingFinance} className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+                {creatingFinance ? "Saving..." : "Add Finance User"}
+              </button>
+              {financeStatus && <p className="text-sm text-slate-500">{financeStatus}</p>}
+            </div>
+          </form>
+
+          <div className="mt-8">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Finance User List</h3>
+            <div className="mt-3 overflow-x-auto rounded-3xl border border-slate-100">
+              {loadingFinance ? (
+                <div className="flex items-center justify-center gap-2 px-6 py-10 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading finance users...
+                </div>
+              ) : financeUsers.length === 0 ? (
+                <p className="px-6 py-10 text-sm text-slate-500">No finance users yet.</p>
+              ) : (
+                <table className="min-w-full divide-y divide-slate-100 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {financeUsers.map((item) => (
+                      <tr key={item.ID}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{item.FullName}</td>
+                        <td className="px-4 py-3 text-slate-600">{item.Email}</td>
+                        <td className="px-4 py-3 text-slate-600">{item.Role?.Name ?? "FINANCE"}</td>
+                        <td className="px-4 py-3 text-slate-500">{formatDate(item.CreatedAt)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}

@@ -6,10 +6,16 @@ const (
     RoleMasterAdminID = 1
     RoleAdminID       = 2
     RoleTeknisiID     = 3
+    RoleFinanceMakerID   = 4
+    RoleFinanceCheckerID = 5
+    RoleFinanceSignerID  = 6
 
-    RoleMasterAdmin = "MASTER_ADMIN"
-    RoleAdmin       = "ADMIN"
-    RoleTeknisi     = "TEKNISI"
+    RoleMasterAdmin    = "MASTER_ADMIN"
+    RoleAdmin          = "ADMIN"
+    RoleTeknisi        = "TEKNISI"
+    RoleFinanceMaker   = "FINANCE_MAKER"
+    RoleFinanceChecker = "FINANCE_CHECKER"
+    RoleFinanceSigner  = "FINANCE_SIGNER"
 )
 
 // Role represents authorization level for the system.

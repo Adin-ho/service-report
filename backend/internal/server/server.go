@@ -13,6 +13,7 @@ import (
 
 	"github.com/company/internal-service-report/internal/config"
 	"github.com/company/internal-service-report/internal/domain/auth"
+	"github.com/company/internal-service-report/internal/domain/finance"
 	"github.com/company/internal-service-report/internal/domain/partner"
 	"github.com/company/internal-service-report/internal/domain/report"
 	"github.com/company/internal-service-report/internal/domain/user"
@@ -171,6 +172,9 @@ func New(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	partnerSvc := partner.NewService(db)
 	partnerHandler := partner.NewHandler(partnerSvc)
 
+	financeSvc := finance.NewService(db, cfg.UploadDir)
+	financeHandler := finance.NewHandler(financeSvc)
+
 	api := r.Group("/api/v1")
 
 	api.POST("/auth/login", authHandler.Login)
@@ -188,6 +192,10 @@ func New(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	master.POST("/admins", userHandler.CreateAdmin)
 	master.GET("/admins", userHandler.ListAdmins)
 	master.PATCH("/admins/:id/reset-password", userHandler.ResetAdminPassword)
+	master.POST("/finance/users/maker", userHandler.CreateFinanceMaker)
+	master.POST("/finance/users/checker", userHandler.CreateFinanceChecker)
+	master.POST("/finance/users/signer", userHandler.CreateFinanceSigner)
+	master.GET("/finance/users", userHandler.ListFinance)
 
 	admin := protected.Group("")
 	admin.Use(middleware.RoleGuard(user.RoleAdmin))
@@ -219,6 +227,19 @@ func New(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	teknisi.DELETE("/reports/:id/attachments/:attachment_id", reportHandler.DeleteAttachment)
 	teknisi.PATCH("/reports/:id/form", reportHandler.SaveTechnicianForm)
 	teknisi.PATCH("/reports/:id/progress", reportHandler.UpdateProgress)
+
+	financeGroup := protected.Group("/finance")
+	financeGroup.Use(middleware.RoleGuard(
+		user.RoleFinanceMaker,
+		user.RoleFinanceChecker,
+		user.RoleFinanceSigner,
+	))
+	financeGroup.POST("/activities", financeHandler.Create)
+	financeGroup.GET("/activities", financeHandler.List)
+	financeGroup.GET("/activities/:id", financeHandler.Detail)
+	financeGroup.POST("/activities/:id/submit", middleware.RoleGuard(user.RoleFinanceMaker), financeHandler.Submit)
+	financeGroup.POST("/activities/:id/review", middleware.RoleGuard(user.RoleFinanceChecker), financeHandler.Review)
+	financeGroup.POST("/activities/:id/sign", middleware.RoleGuard(user.RoleFinanceSigner), financeHandler.Sign)
 
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "time": time.Now()})

@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	ErrForbidden       = errors.New("forbidden")
+	ErrForbidden      = errors.New("forbidden")
+	ErrInvalidRole    = errors.New("invalid role")
+	ErrDuplicateEmail = errors.New("email already exists")
 	ErrNotFound        = errors.New("user not found")
 	ErrInvalidRoleFlow = errors.New("role hierarchy violation")
 )
@@ -48,6 +50,30 @@ func (s *Service) CreateAdmin(ctx context.Context, creatorID uint64, req CreateU
 		return nil, ErrForbidden
 	}
 	return s.create(ctx, creatorID, req, RoleAdminID)
+}
+
+// CreateFinanceUser allows master admin to create finance maker/checker/signer.
+func (s *Service) CreateFinanceUser(ctx context.Context, creatorID uint64, req CreateUserRequest, roleName string) (*User, error) {
+	creator, err := s.GetByID(ctx, creatorID)
+	if err != nil {
+		return nil, err
+	}
+	if creator.RoleID != RoleMasterAdminID {
+		return nil, ErrForbidden
+	}
+
+	var roleID uint8
+	switch roleName {
+	case RoleFinanceMaker:
+		roleID = RoleFinanceMakerID
+	case RoleFinanceChecker:
+		roleID = RoleFinanceCheckerID
+	case RoleFinanceSigner:
+		roleID = RoleFinanceSignerID
+	default:
+		return nil, ErrInvalidRoleFlow
+	}
+	return s.create(ctx, creatorID, req, roleID)
 }
 
 func (s *Service) CreateTeknisi(ctx context.Context, creatorID uint64, req CreateUserRequest) (*User, error) {
@@ -115,7 +141,24 @@ func (s *Service) ListTeknisi(ctx context.Context) ([]User, error) {
 	return s.ListByRole(ctx, RoleTeknisiID)
 }
 
+func (s *Service) ListFinanceUsers(ctx context.Context) ([]User, error) {
+	roles := []int{int(RoleFinanceMakerID), int(RoleFinanceCheckerID), int(RoleFinanceSignerID)}
+	var users []User
+	if err := s.db.WithContext(ctx).Preload("Role").Where("role_id IN ?", roles).Order("created_at DESC").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func (s *Service) create(ctx context.Context, parentID uint64, req CreateUserRequest, roleID uint8) (*User, error) {
+	var exists int64
+	if err := s.db.WithContext(ctx).Model(&User{}).Where("email = ?", req.Email).Count(&exists).Error; err != nil {
+		return nil, err
+	}
+	if exists > 0 {
+		return nil, ErrDuplicateEmail
+	}
+
 	hash, err := s.hasher.Hash(req.Password)
 	if err != nil {
 		return nil, err

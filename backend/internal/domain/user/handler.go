@@ -1,6 +1,8 @@
 package user
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/company/internal-service-report/pkg/response"
@@ -28,6 +30,18 @@ func (h *Handler) CreateAdmin(c *gin.Context) {
 		return
 	}
 	response.Created(c, gin.H{"id": user.ID, "email": user.Email})
+}
+
+func (h *Handler) CreateFinanceMaker(c *gin.Context) {
+	h.CreateFinance(c, RoleFinanceMaker)
+}
+
+func (h *Handler) CreateFinanceChecker(c *gin.Context) {
+	h.CreateFinance(c, RoleFinanceChecker)
+}
+
+func (h *Handler) CreateFinanceSigner(c *gin.Context) {
+	h.CreateFinance(c, RoleFinanceSigner)
 }
 
 func (h *Handler) ListAdmins(c *gin.Context) {
@@ -61,6 +75,34 @@ func (h *Handler) ListTeknisi(c *gin.Context) {
 		return
 	}
 	response.OK(c, teknisi)
+}
+
+func (h *Handler) CreateFinance(c *gin.Context, roleName string) {
+	creatorID := c.GetUint64("userID")
+	var req CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err)
+		return
+	}
+	user, err := h.svc.CreateFinanceUser(c.Request.Context(), creatorID, req, roleName)
+	if err != nil {
+		if errors.Is(err, ErrDuplicateEmail) {
+			response.BadRequest(c, err)
+			return
+		}
+		response.InternalError(c, err)
+		return
+	}
+	response.Created(c, gin.H{"id": user.ID, "email": user.Email})
+}
+
+func (h *Handler) ListFinance(c *gin.Context) {
+	users, err := h.svc.ListFinanceUsers(c.Request.Context())
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+	response.OK(c, users)
 }
 
 func (h *Handler) ResetAdminPassword(c *gin.Context) {

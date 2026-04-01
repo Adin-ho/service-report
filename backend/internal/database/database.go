@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/company/internal-service-report/internal/config"
+	"github.com/company/internal-service-report/internal/domain/finance"
 	"github.com/company/internal-service-report/internal/domain/partner"
 	"github.com/company/internal-service-report/internal/domain/report"
 	"github.com/company/internal-service-report/internal/domain/user"
@@ -31,6 +32,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&report.ReportAttachment{},
 		&report.StatusLog{},
 		&partner.PartnerLocation{},
+		&finance.FinanceActivity{},
+		&finance.FinanceActivityItem{},
+		&finance.FinanceActivityLog{},
 	); err != nil {
 		return err
 	}
@@ -60,6 +64,9 @@ func Seed(db *gorm.DB, cfg *config.Config) error {
 		{ID: user.RoleMasterAdminID, Name: user.RoleMasterAdmin, Description: "Super user"},
 		{ID: user.RoleAdminID, Name: user.RoleAdmin, Description: "Branch admin"},
 		{ID: user.RoleTeknisiID, Name: user.RoleTeknisi, Description: "Technician"},
+		{ID: user.RoleFinanceMakerID, Name: user.RoleFinanceMaker, Description: "Finance maker"},
+		{ID: user.RoleFinanceCheckerID, Name: user.RoleFinanceChecker, Description: "Finance checker"},
+		{ID: user.RoleFinanceSignerID, Name: user.RoleFinanceSigner, Description: "Finance signer"},
 	}
 	for _, role := range roles {
 		if err := db.FirstOrCreate(&role, user.Role{ID: role.ID}).Error; err != nil {
@@ -87,5 +94,19 @@ func Seed(db *gorm.DB, cfg *config.Config) error {
 			return fmt.Errorf("seed master admin: %w", err)
 		}
 	}
+
+	// Cleanup legacy/dummy finance seed users by configured seed emails (if provided)
+	var cleanupEmails []string
+	for _, e := range []string{cfg.SeedFinanceMakerEmail, cfg.SeedFinanceCheckerEmail, cfg.SeedFinanceSignerEmail} {
+		if e != "" {
+			cleanupEmails = append(cleanupEmails, e)
+		}
+	}
+	if len(cleanupEmails) > 0 {
+		if err := db.Where("email IN ?", cleanupEmails).Delete(&user.User{}).Error; err != nil {
+			return fmt.Errorf("cleanup finance seeds: %w", err)
+		}
+	}
+
 	return nil
 }

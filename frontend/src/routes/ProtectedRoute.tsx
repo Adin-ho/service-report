@@ -3,7 +3,14 @@ import { useAuth } from "../hooks/useAuth";
 import { useMemo } from "react";
 
 type Props = {
-  roles?: Array<"MASTER_ADMIN" | "ADMIN" | "TEKNISI">;
+  roles?: Array<
+    | "MASTER_ADMIN"
+    | "ADMIN"
+    | "TEKNISI"
+    | "FINANCE_MAKER"
+    | "FINANCE_CHECKER"
+    | "FINANCE_SIGNER"
+  >;
   redirectTo?: string;
   children?: React.ReactNode;
 };
