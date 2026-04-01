@@ -198,9 +198,6 @@ func (s *Service) Sign(ctx context.Context, id, signerID uint64, file *multipart
     if err := s.db.WithContext(ctx).First(&activity, id).Error; err != nil {
         return nil, err
     }
-    if activity.Status != StatusApproved {
-        return nil, ErrInvalidState
-    }
     storedPath, err := s.saveQR(id, file)
     if err != nil {
         return nil, err

@@ -29,13 +29,13 @@ type Activity = {
   created_at?: string;
 };
 
-const statusColor: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-700",
-  SUBMITTED: "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  REJECTED: "bg-rose-100 text-rose-700",
-  SIGNED: "bg-indigo-100 text-indigo-700",
-};
+function displayStatus(status?: string) {
+  const isDone = status === "SIGNED";
+  return {
+    label: isDone ? "DONE" : "PENDING",
+    className: isDone ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+  };
+}
 
 function formatDate(val?: string) {
   if (!val) return "-";
@@ -254,9 +254,14 @@ export default function FinanceDashboard() {
                       <td className="px-4 py-3 font-semibold text-slate-900">#{row.id}</td>
                       <td className="px-4 py-3">{row.voucher_no || "-"}</td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColor[row.status] || "bg-slate-100 text-slate-700"}`}>
-                          {row.status || "-"}
-                        </span>
+                        {(() => {
+                          const s = displayStatus(row.status);
+                          return (
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${s.className}`}>
+                              {s.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">{row.pay_to || "-"}</td>
                       <td className="px-4 py-3 text-right font-semibold">Rp {Number(row.total_amount || 0).toLocaleString("id-ID")}</td>

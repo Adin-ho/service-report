@@ -25,13 +25,13 @@ export type Activity = {
   items?: Array<{ acc_no: string; account_name: string; description: string; amount: number }>;
 };
 
-const statusColor: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-700",
-  SUBMITTED: "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  REJECTED: "bg-rose-100 text-rose-700",
-  SIGNED: "bg-indigo-100 text-indigo-700",
-};
+function displayStatus(status?: string) {
+  const isDone = status === "SIGNED";
+  return {
+    label: isDone ? "DONE" : "PENDING",
+    className: isDone ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+  };
+}
 
 function formatDate(val?: string) {
   if (!val) return "-";
@@ -53,7 +53,8 @@ export default function FinanceHistory() {
       setError(null);
       try {
         const res = await api.get("/finance/activities");
-        setData(res.data?.data ?? []);
+        const rows = res.data?.data ?? [];
+        setData([...rows].sort((a: Activity, b: Activity) => b.id - a.id));
       } catch (err: any) {
         setError(err?.response?.data?.error || "Gagal memuat data");
       } finally {
@@ -89,43 +90,50 @@ export default function FinanceHistory() {
           <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">Belum ada aktivitas.</div>
         ) : (
           <div className="mt-4 overflow-hidden rounded-3xl border border-slate-100">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Voucher No</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Pay To</th>
-                  <th className="px-4 py-3 text-right">Jumlah</th>
-                  <th className="px-4 py-3">Tanggal</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {data.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-4 py-3 font-semibold text-slate-900">#{row.id}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.voucher_no || "-"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor[row.status] || "bg-slate-100 text-slate-700"}`}>
-                        {row.status || "-"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{row.pay_to || "-"}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900">Rp {Number(row.total_amount || 0).toLocaleString("id-ID")}</td>
-                    <td className="px-4 py-3 text-slate-500">{formatDate(row.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => navigate(`/finance/history/${row.id}`)}
-                        className="rounded-2xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Detail
-                      </button>
-                    </td>
+            <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+              <table className="min-w-[720px] divide-y divide-slate-100 text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">ID</th>
+                    <th className="px-4 py-3">Voucher No</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Pay To</th>
+                    <th className="px-4 py-3 text-right">Jumlah</th>
+                    <th className="px-4 py-3">Tanggal</th>
+                    <th className="px-4 py-3 text-right">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {data.map((row) => (
+                    <tr key={row.id}>
+                      <td className="px-4 py-3 font-semibold text-slate-900">#{row.id}</td>
+                      <td className="px-4 py-3 text-slate-700">{row.voucher_no}</td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const s = displayStatus(row.status);
+                          return (
+                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${s.className}`}>
+                              {s.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{row.pay_to || "-"}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900">Rp {Number(row.total_amount || 0).toLocaleString("id-ID")}</td>
+                      <td className="px-4 py-3 text-slate-500">{formatDate(row.created_at)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => navigate(`/finance/history/${row.id}`)}
+                          className="rounded-2xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

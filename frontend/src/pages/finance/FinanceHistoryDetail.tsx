@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { UploadCloud } from "lucide-react";
+import { CheckCircle, UploadCloud, XCircle } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -9,12 +9,17 @@ import type { Activity } from "./FinanceHistory";
 type Item = NonNullable<Activity["items"]>[number];
 
 const statusStyle: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-700",
-  SUBMITTED: "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  REJECTED: "bg-rose-100 text-rose-700",
-  SIGNED: "bg-indigo-100 text-indigo-700",
+  DONE: "bg-emerald-100 text-emerald-700",
+  PENDING: "bg-amber-100 text-amber-700",
 };
+
+function displayStatus(status?: string) {
+  const isDone = status === "SIGNED";
+  return {
+    label: isDone ? "DONE" : "PENDING",
+    className: isDone ? statusStyle.DONE : statusStyle.PENDING,
+  };
+}
 
 function formatDate(val?: string) {
   if (!val) return "-";
@@ -55,27 +60,52 @@ export default function FinanceHistoryDetail() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [signatureFiles, setSignatureFiles] = useState<{ processed?: File; approved?: File; received?: File }>({});
+  const [signaturePreview, setSignaturePreview] = useState<{ processed?: string; approved?: string; received?: string }>({});
+  const [submitFeedback, setSubmitFeedback] = useState<{ status: "success" | "error"; message: string } | null>(null);
+  const [previewModal, setPreviewModal] = useState<{ src: string; label: string } | null>(null);
+
+  const isSigner = user?.role === "FINANCE_SIGNER";
+  const storageKey = isSigner && id ? `finance-signature-previews-${id}-user-${user?.id ?? "unknown"}` : null;
+
+  const persistPreviews = (next: { processed?: string; approved?: string; received?: string }) => {
+    if (!storageKey) return;
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  };
 
   const itemsTotal = (data?.items ?? []).reduce((sum, it) => sum + Number(it.amount || 0), 0);
-  const baseURL = api.defaults.baseURL || "";
+
+  const fetchDetail = async (activityId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/finance/activities/${activityId}`);
+      setData(res.data?.data ?? null);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || "Gagal memuat detail";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
-    const fetchDetail = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.get(`/finance/activities/${id}`);
-        setData(res.data?.data ?? null);
-      } catch (err: any) {
-        const message = err?.response?.data?.message || "Gagal memuat detail";
-        setError(message);
-      } finally {
-        setLoading(false);
+    if (isSigner && storageKey) {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setSignaturePreview(parsed);
+        } catch (_) {
+          /* ignore */
+        }
       }
-    };
-    fetchDetail();
-  }, [id]);
+    } else {
+      setSignaturePreview({});
+    }
+    fetchDetail(id);
+  }, [id, storageKey, isSigner]);
 
   return (
     <div className="space-y-6">
@@ -109,9 +139,14 @@ export default function FinanceHistoryDetail() {
                 <h2 className="text-xl font-semibold text-slate-900">#{data.id} — {data.voucher_no || "-"}</h2>
                 <div className="mt-1 inline-flex items-center gap-2 text-sm text-slate-600">
                   <span>Status:</span>
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle[data.status] || "bg-slate-100 text-slate-700"}`}>
-                    {data.status || "-"}
-                  </span>
+                  {(() => {
+                    const s = displayStatus(data.status);
+                    return (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${s.className}`}>
+                        {s.label}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="text-right text-xs text-slate-500 space-y-1">
@@ -232,13 +267,6 @@ export default function FinanceHistoryDetail() {
                   <div className="flex justify-between"><span>Total Items</span><span className="font-semibold text-white">{(data.items ?? []).length}</span></div>
                   <div className="flex justify-between"><span>Grand Total (Line Items)</span><span className="font-semibold text-white">{formatCurrency(itemsTotal)}</span></div>
                 </div>
-                <div className="mt-4 space-y-1 text-xs text-slate-200">
-                  <div className="flex justify-between"><span>Submitted</span><span>{data.submitted_at ? formatDateTime(data.submitted_at) : "-"}</span></div>
-                  <div className="flex justify-between"><span>Reviewed</span><span>{data.reviewed_at ? formatDateTime(data.reviewed_at) : "-"}</span></div>
-                  <div className="flex justify-between"><span>Approved</span><span>{data.approved_at ? formatDateTime(data.approved_at) : "-"}</span></div>
-                  <div className="flex justify-between"><span>Rejected</span><span>{data.rejected_at ? formatDateTime(data.rejected_at) : "-"}</span></div>
-                  <div className="flex justify-between"><span>Signed</span><span>{data.signed_at ? formatDateTime(data.signed_at) : "-"}</span></div>
-                </div>
               </div>
             </div>
 
@@ -251,7 +279,8 @@ export default function FinanceHistoryDetail() {
                 </div>
               </div>
               <div className="overflow-hidden rounded-2xl border border-slate-100">
-                <table className="min-w-full text-sm">
+                <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                  <table className="min-w-[640px] text-sm">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-3 py-2 text-left">Acc No</th>
@@ -275,7 +304,8 @@ export default function FinanceHistoryDetail() {
                       </tr>
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -290,16 +320,21 @@ export default function FinanceHistoryDetail() {
                 {uploadSuccess && <span className="text-sm text-emerald-600">{uploadSuccess}</span>}
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {["Processed By", "Approved By", "Received By"].map((label) => {
-                  const preview = data.qr_file ? (data.qr_file.startsWith("http") ? data.qr_file : `${baseURL}${data.qr_file}`) : "";
+                {["processed", "approved", "received"].map((key) => {
+                  const labelMap: Record<string, string> = { processed: "Processed By", approved: "Approved By", received: "Received By" };
+                  const preview = signaturePreview[key as keyof typeof signaturePreview] || "";
                   const canUpload = user?.role === "FINANCE_SIGNER";
                   return (
-                    <div key={label} className="space-y-2 text-sm text-slate-600">
-                      <span className="text-slate-800">{label}</span>
+                    <div key={key} className="space-y-2 text-sm text-slate-600">
+                      <span className="text-slate-800">{labelMap[key]}</span>
                       {preview ? (
-                        <div className="flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewModal({ src: preview, label: labelMap[key] })}
+                          className="flex h-40 w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                        >
                           <img src={preview} alt="QR" className="h-full w-full object-contain" />
-                        </div>
+                        </button>
                       ) : (
                         <label
                           className={`flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-gradient-to-br from-slate-100 via-slate-50 to-white text-center text-sm font-semibold text-slate-600 ${
@@ -316,71 +351,134 @@ export default function FinanceHistoryDetail() {
                             accept="image/png,image/jpeg"
                             className="hidden"
                             disabled={!canUpload}
-                            onChange={async (e) => {
+                            onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (!file || !data?.id || !canUpload) return;
-                              setUploading(true);
+                              if (!file || !canUpload) return;
+                              setSignatureFiles((prev) => ({ ...prev, [key]: file }));
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                setSignaturePreview((prev) => {
+                                  const next = { ...prev, [key]: String(reader.result) };
+                                  persistPreviews(next);
+                                  return next;
+                                });
+                              };
+                              reader.readAsDataURL(file);
                               setUploadError(null);
                               setUploadSuccess(null);
-                              try {
-                                const form = new FormData();
-                                form.append("qr_file", file);
-                                const res = await api.post(`/finance/activities/${data.id}/sign`, form, {
-                                  headers: { "Content-Type": "multipart/form-data" },
-                                });
-                                setData(res.data?.data ?? data);
-                                setUploadSuccess("QR berhasil diunggah.");
-                              } catch (err: any) {
-                                setUploadError(err?.response?.data?.error || "Gagal upload QR");
-                              } finally {
-                                setUploading(false);
-                              }
                             }}
                           />
                         </label>
-                      )}
-                      {preview && canUpload && (
-                        <div className="flex justify-between text-xs text-slate-500">
-                          <span>Uploaded QR</span>
-                          <label className="cursor-pointer font-semibold text-slate-700">
-                            Ganti file
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg"
-                              className="hidden"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file || !data?.id || !canUpload) return;
-                                setUploading(true);
-                                setUploadError(null);
-                                setUploadSuccess(null);
-                                try {
-                                  const form = new FormData();
-                                  form.append("qr_file", file);
-                                  const res = await api.post(`/finance/activities/${data.id}/sign`, form, {
-                                    headers: { "Content-Type": "multipart/form-data" },
-                                  });
-                                  setData(res.data?.data ?? data);
-                                  setUploadSuccess("QR berhasil diunggah.");
-                                } catch (err: any) {
-                                  setUploadError(err?.response?.data?.error || "Gagal upload QR");
-                                } finally {
-                                  setUploading(false);
-                                }
-                              }}
-                            />
-                          </label>
-                        </div>
                       )}
                       <div className="text-xs text-slate-500">
                         <div>Signer ID: {data.signer_id ?? "-"}</div>
                         <div>Signed At: {data.signed_at ? formatDateTime(data.signed_at) : "-"}</div>
                       </div>
-                      {uploading && <p className="text-xs text-slate-500">Mengunggah...</p>}
                     </div>
                   );
                 })}
               </div>
+              {user?.role === "FINANCE_SIGNER" && (
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-slate-500">Submit setelah seluruh QR diunggah.</p>
+                  <button
+                    onClick={async () => {
+                      const files = signatureFiles;
+                      const order = ["processed", "approved", "received"] as const;
+                      const chosenKey = order.find((k) => files[k]);
+                      const chosen = chosenKey ? files[chosenKey] : undefined;
+                      if (!chosen) {
+                        setUploadError("Upload minimal 1 QR terlebih dahulu.");
+                        return;
+                      }
+                      setUploading(true);
+                      setUploadError(null);
+                      setUploadSuccess(null);
+                      setSubmitFeedback(null);
+                      try {
+                        const form = new FormData();
+                        form.append("qr_file", chosen);
+                        const res = await api.post(`/finance/activities/${data.id}/sign`, form, {
+                          headers: { "Content-Type": "multipart/form-data" },
+                        });
+                        setData(res.data?.data ?? data);
+                        setUploadSuccess("Signature submitted.");
+                        // Keep per-slot previews/files so they don't disappear after submit.
+                        setSignatureFiles((prev) => ({ ...prev }));
+                        if (storageKey) {
+                          persistPreviews(signaturePreview);
+                        }
+                        setSubmitFeedback({ status: "success", message: "QR signature berhasil disubmit." });
+                      } catch (err: any) {
+                        const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Gagal upload QR";
+                        setUploadError(msg);
+                        setSubmitFeedback({ status: "error", message: msg });
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                    disabled={uploading || data.status === "SIGNED"}
+                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold text-white shadow ${
+                      data.status === "SIGNED"
+                        ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                        : "bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                    }`}
+                  >
+                    {data.status === "SIGNED" ? "Signature Completed" : "Submit Signature"}
+                  </button>
+                </div>
+              )}
+              {submitFeedback && (
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/40 px-4">
+                  <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-1 flex h-10 w-10 items-center justify-center rounded-full ${
+                          submitFeedback.status === "success" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                        }`}
+                      >
+                        {submitFeedback.status === "success" ? <CheckCircle className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-lg font-semibold text-slate-900">{submitFeedback.status === "success" ? "Berhasil" : "Gagal"}</p>
+                        <p className="text-sm text-slate-600">{submitFeedback.message}</p>
+                        {submitFeedback.status === "success" && (
+                          <p className="text-xs text-slate-500">Status akan berubah menjadi DONE setelah response tersimpan.</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        onClick={() => setSubmitFeedback(null)}
+                        className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {previewModal && (
+                <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-900/75 px-4" onClick={() => setPreviewModal(null)}>
+                  <div className="relative w-full max-w-2xl rounded-3xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Preview</p>
+                        <p className="text-sm font-semibold text-slate-800">{previewModal.label}</p>
+                      </div>
+                      <button
+                        onClick={() => setPreviewModal(null)}
+                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                    <div className="flex max-h-[70vh] items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                      <img src={previewModal.src} alt={previewModal.label} className="h-full max-h-[70vh] w-full object-contain" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
