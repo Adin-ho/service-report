@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QrCode } from "lucide-react";
 import { api } from "../../lib/api";
-
+//
 interface ReportHistory {
   id: number;
   dispatch_no: string;
